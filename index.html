@@ -275,6 +275,17 @@
     <div class="status" id="saveStatus"></div>
     <div class="hint">Token wird nur für diese Sitzung im Speicher gehalten, nicht gespeichert.</div>
     <hr>
+    <strong>Text-Datei importieren</strong>
+    <div class="hint">Dateiname (ohne Endung) muss dem Feldnamen entsprechen, z.B. "aboutText1.txt".</div>
+    <input type="file" id="textImportInput" accept=".txt,.md,text/plain" multiple>
+    <div class="status" id="importStatus"></div>
+    <details style="margin-top:8px;">
+      <summary style="cursor:pointer;">Gültige Feldnamen anzeigen</summary>
+      <div class="hint" style="margin-top:6px; line-height:1.5;">
+        artistName, tagline, aboutText1, aboutText2, soundText, tag1, tag2, tag3, tag4, tag5, vid1title, vid2title, vid3title, footerText
+      </div>
+    </details>
+    <hr>
     <div class="hint">Repo: <span id="repoInfo"></span></div>
   </div>
 </div>
@@ -671,6 +682,41 @@
   }
 
   saveBtn.addEventListener('click', saveAll);
+
+  // ======================================================
+  // Text-Datei-Import: Dateiname (ohne Endung) = Feldname
+  // ======================================================
+  const textImportInput = document.getElementById('textImportInput');
+  const importStatus = document.getElementById('importStatus');
+
+  textImportInput.addEventListener('change', async () => {
+    const files = Array.from(textImportInput.files || []);
+    if(!files.length) return;
+    const updated = [];
+    const notFound = [];
+
+    for(const file of files){
+      const key = file.name.replace(/\.[^/.]+$/, '');
+      const el = document.querySelector('[data-key="'+key+'"]');
+      const raw = await file.text();
+      const content = raw.replace(/\r\n/g, '\n').trim();
+      if(el){
+        // Zeilenumbrüche als <br> übernehmen (z.B. für den Künstlernamen)
+        el.innerHTML = content.split('\n').map(line => line.trim()).join('<br>');
+        updated.push(key);
+      } else {
+        notFound.push(file.name);
+      }
+    }
+
+    let msg = '';
+    if(updated.length) msg += 'Aktualisiert: ' + updated.join(', ') + '. ';
+    if(notFound.length) msg += 'Kein passendes Feld für: ' + notFound.join(', ') + '.';
+    importStatus.textContent = msg + ' Nicht vergessen: "Speichern in GitHub" klicken.';
+    importStatus.className = notFound.length && !updated.length ? 'status err' : 'status ok';
+
+    textImportInput.value = '';
+  });
 
   // Inhalte beim Laden der Seite aus GitHub holen (für alle Besucher)
   loadContent();
